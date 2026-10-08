@@ -1,0 +1,3 @@
+{% extends "base.html" %}
+{% block title %}{{ code }} · AQA{% endblock %}
+{% block content %}<section class="card shadow-sm border-0 p-5 text-center"><div class="display-4 fw-bold">{{ code }}</div><h1 class="h3">{{ message }}</h1><a class="btn btn-primary mt-3" href="{{ url_for('main.index') }}">Return to analyzer</a></section>{% endblock %}

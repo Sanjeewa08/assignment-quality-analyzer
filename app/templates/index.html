@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Assignment Quality Analyzer{% endblock %}
+{% block content %}
+<section class="hero-panel p-4 p-lg-5 mb-4">
+  <div class="eyebrow">ACADEMIC WRITING QA</div>
+  <h1 class="display-4 fw-bold mt-2">Improve the work.<br><em>Keep the integrity.</em></h1>
+  <p class="lead mb-0">A transparent revision checklist for clarity, structure, citations, and formatting—not an automated grade or misconduct verdict.</p>
+</section>
+{% if not current_user.is_authenticated %}
+<section class="card shadow-sm border-0 text-center p-4">
+  <h2 class="h4">Sign in to analyze and track your work</h2>
+  <p class="text-secondary">Your submission history is private to your account. Lecturers can create shared rubrics.</p>
+  <div><a class="btn btn-primary" href="{{ url_for('main.login') }}">Sign in</a> <a class="btn btn-outline-primary" href="{{ url_for('main.register') }}">Create student account</a></div>
+</section>
+{% else %}
+<section class="card shadow-sm border-0 p-3 p-lg-4">
+  <form id="upload-form" action="{{ url_for('main.analyze') }}" method="post" enctype="multipart/form-data">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label class="dropzone w-100 p-4 text-center" id="dropzone" for="assignment">
+      <input class="visually-hidden" id="assignment" type="file" name="assignment" accept=".txt,.docx,.pdf,.ppt,.pptx,.jpg,.jpeg,.png" required>
+      <span class="display-6" aria-hidden="true">↑</span>
+      <strong class="d-block fs-5">Drop an assignment here or browse</strong>
+      <span class="text-secondary">TXT, DOCX, PDF, PPT, PPTX, JPG, JPEG, PNG · 10 MB max · scanned documents need local OCR tools</span>
+      <span id="selected-file" class="selected-file mt-2"></span>
+    </label>
+    <div class="row g-3 mt-2">
+      <div class="col-sm-4"><label class="form-label" for="min_words">Minimum words</label><input class="form-control" id="min_words" type="number" name="min_words" min="1" placeholder="Optional"></div>
+      <div class="col-sm-4"><label class="form-label" for="max_words">Maximum words</label><input class="form-control" id="max_words" type="number" name="max_words" min="1" placeholder="Optional"></div>
+      <div class="col-sm-4"><label class="form-label" for="min_references">Minimum references</label><input class="form-control" id="min_references" type="number" name="min_references" min="1" placeholder="Optional"></div>
+    </div>
+    {% if rubrics %}
+    <div class="mt-3"><label class="form-label" for="rubric_id">Lecturer rubric</label><select class="form-select" id="rubric_id" name="rubric_id"><option value="">No rubric</option>{% for rubric in rubrics %}<option value="{{ rubric.id }}">{{ rubric.title }}</option>{% endfor %}</select></div>
+    {% endif %}
+    <div class="mt-3"><label class="form-label" for="reference_text">Optional reference passage for comparison</label><textarea class="form-control" id="reference_text" name="reference_text" rows="3" placeholder="Compared locally for possible overlap; this app does not search the internet."></textarea></div>
+    <div class="progress mt-3 d-none" id="upload-progress" role="progressbar" aria-label="Upload progress" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar progress-bar-striped progress-bar-animated" id="progress-bar" style="width:0%">0%</div></div>
+    <button class="btn btn-primary btn-lg w-100 mt-4" id="submit-button" type="submit">Analyze assignment</button>
+  </form>
+</section>
+{% endif %}
+<section class="row g-3 mt-3">
+  <div class="col-md-4"><div class="feature-card h-100"><strong>Explainable signals</strong><p>Readability, writing style, structure, and citation checks are shown with limitations.</p></div></div>
+  <div class="col-md-4"><div class="feature-card h-100"><strong>Local comparison</strong><p>Possible overlaps compare only to local submissions and optional reference passages.</p></div></div>
+  <div class="col-md-4"><div class="feature-card h-100"><strong>Guidance, not rewriting</strong><p>Get revision suggestions while keeping authorship and academic integrity in your hands.</p></div></div>
+</section>
+<p class="small text-secondary mt-4">The AI-style likelihood is a weak heuristic, not an authorship test. Never use it alone for academic or disciplinary decisions.</p>
+{% endblock %}

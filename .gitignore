@@ -1,0 +1,12 @@
+__pycache__/
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+*.pyc
+instance/
+uploads/
+data/
+.env
+playwright-report/
+test-results/

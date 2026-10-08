@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Report · {{ submission.file_name }}{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <a href="{{ url_for('main.index') }}">← Analyze another file</a>
+  <a class="btn btn-outline-primary" href="{{ url_for('main.export_pdf', submission_id=submission.id) }}">Download PDF report</a>
+</div>
+<header class="report-heading mb-4">
+  <div class="eyebrow">ANALYSIS REPORT</div><h1 class="h2 mt-2">{{ submission.file_name }}</h1>
+  <p class="text-secondary">Report generated {{ submission.created_at.strftime('%Y-%m-%d %H:%M') }} · Use these signals as a revision checklist, not as an academic verdict.</p>
+</header>
+<section class="card shadow-sm border-0 p-4 mb-4">
+  <div class="d-flex flex-wrap align-items-center gap-3">
+    <div class="score-circle" aria-label="Overall quality score {{ report.overall_score }} out of 100">{{ report.overall_score }}</div>
+    <div><div class="eyebrow">OVERALL QUALITY SCORE</div><p class="mb-0">An equally weighted checklist, not a grade. Requirements vary by course.</p></div>
+  </div>
+  <div class="row g-3 mt-3">
+    {% for name, score in report.category_scores.items() %}
+    <div class="col-md-6"><div class="d-flex justify-content-between"><span>{{ name }}</span><strong>{{ score }}%</strong></div><div class="progress" role="progressbar" aria-label="{{ name }} score" aria-valuenow="{{ score }}" aria-valuemin="0" aria-valuemax="100"><div class="progress-bar" style="width:{{ score }}%"></div></div></div>
+    {% endfor %}
+  </div>
+</section>
+<div class="row g-4 mb-4">
+  <div class="col-lg-7"><section class="card shadow-sm border-0 p-4 h-100"><h2 class="h4">Actionable feedback</h2><ul class="feedback-list">{% for item in report.feedback %}<li>{{ item }}</li>{% endfor %}</ul></section></div>
+  <div class="col-lg-5"><section class="card shadow-sm border-0 p-4 h-100"><h2 class="h4">Document overview</h2><div class="stats-grid"><div><strong>{{ report.writing.counts.words }}</strong><span>Words</span></div><div><strong>{{ report.writing.counts.characters }}</strong><span>Characters</span></div><div><strong>{{ report.writing.counts.sentences }}</strong><span>Sentences</span></div><div><strong>{{ report.writing.counts.paragraphs }}</strong><span>Paragraphs</span></div></div><p class="mt-3 mb-1"><strong>Readability:</strong> {{ report.writing.readability.interpretation }}</p><p class="small text-secondary">Flesch {{ report.writing.readability.flesch_reading_ease }} · Grade {{ report.writing.readability.flesch_kincaid_grade }} · Gunning Fog {{ report.writing.readability.gunning_fog }}</p>{% if report.word_requirement.minimum or report.word_requirement.maximum %}<p class="mb-1"><strong>Word target:</strong> {{ report.word_requirement.minimum if report.word_requirement.minimum else 'No minimum' }}–{{ report.word_requirement.maximum if report.word_requirement.maximum else 'No maximum' }} · {{ 'Met' if report.word_requirement.passed else 'Not met' }}</p>{% endif %}{% if report.reference_requirement.minimum %}<p class="mb-0"><strong>Reference target:</strong> at least {{ report.reference_requirement.minimum }} · {{ 'Met' if report.reference_requirement.passed else 'Not met' }}</p>{% endif %}</section></div>
+</div>
+<div class="row g-4 mb-4">
+  <div class="col-lg-6"><section class="card shadow-sm border-0 p-4 h-100"><h2 class="h4">Structure</h2>{% for name, present in report.writing.structure.sections.items() %}<div class="check-row"><span class="{{ 'text-success' if present else 'text-danger' }}">{{ '✓' if present else '!' }}</span><strong>{{ name }}</strong><span class="ms-auto text-secondary">{{ report.writing.structure.section_word_counts.get(name, 0) if present else 'Missing' }}{% if present %} words{% endif %}</span></div>{% endfor %}<p class="small text-secondary mt-3">Detected headings: {{ report.writing.structure.headings|join(', ') if report.writing.structure.headings else 'None recognized' }}</p></section></div>
+  <div class="col-lg-6"><section class="card shadow-sm border-0 p-4 h-100"><h2 class="h4">Citations & references</h2><p>Likely style: <strong>{{ report.citations.style_detected }}</strong> · {{ report.citations.in_text_count }} in-text citation(s) · {{ report.citations.reference_count }} reference(s)</p>{% for issue in report.citations.issues %}<p class="issue-note">{{ issue }}</p>{% else %}<p class="text-success">No citation-list mismatch detected by these basic checks.</p>{% endfor %}{% for suggestion in report.citations.suggestions %}<p class="small text-secondary">{{ suggestion }}</p>{% endfor %}</section></div>
+</div>
+<div class="row g-4 mb-4">
+  <div class="col-lg-6"><section class="card shadow-sm border-0 p-4 h-100"><h2 class="h4">Writing style & mechanics</h2><p>Average sentence: <strong>{{ report.writing.style.average_sentence_words }} words</strong> · Tone: <strong>{{ report.writing.style.tone }}</strong> · Vocabulary diversity: <strong>{{ report.writing.style.vocabulary_diversity }}</strong></p><p>Possible grammar/spelling flags: <strong>{{ report.writing.grammar.errors|length }}</strong> · Check engine: {{ report.writing.grammar.engine }}</p>{% if report.writing.grammar.errors %}<ul>{% for error in report.writing.grammar.errors[:8] %}<li>“{{ error.text }}” — possible suggestion: “{{ error.suggestion }}”</li>{% endfor %}</ul>{% endif %}{% if report.writing.style.passive_voice_examples %}<p>Possible passive constructions: {{ report.writing.style.passive_voice_examples|join(', ') }}</p>{% endif %}{% if report.writing.style.repeated_words %}<p>Repeated terms: {% for item in report.writing.style.repeated_words %}{{ item.word }} ({{ item.count }}){% if not loop.last %}, {% endif %}{% endfor %}</p>{% endif %}</section></div>
+  <div class="col-lg-6"><section class="card shadow-sm border-0 p-4 h-100"><h2 class="h4">Originality & AI-style signals</h2><p>Originality review score: <strong>{{ report.originality.score }}/100</strong></p><p class="small text-secondary">{{ report.originality.disclaimer }} The score starts at 100 and applies bounded deductions for document similarity and matched sentences; no comparison sources means no similarity deduction.</p><p>Compared with {{ report.originality.breakdown.compared_documents }} local/reference document(s). Highest similarity: {{ report.originality.breakdown.highest_document_similarity }}%.</p><p><strong>AI-style heuristic confidence signal:</strong> {{ report.writing.ai_likelihood.confidence }}/100</p><p class="small text-secondary">{{ report.writing.ai_likelihood.disclaimer }}</p>{% if report.writing.ai_likelihood.signals %}<p>Signals: {{ report.writing.ai_likelihood.signals|join('; ') }}.</p>{% endif %}</section></div>
+</div>
+{% if report.formatting.available %}
+<section class="card shadow-sm border-0 p-4 mb-4"><h2 class="h4">DOCX formatting review · {{ report.formatting.score }}%</h2>{% for check in report.formatting.checks %}<div class="check-row"><span class="{{ 'text-success' if check.passed else 'text-warning' }}">{{ '✓' if check.passed else '!' }}</span><strong>{{ check.name }}</strong><span class="ms-auto text-secondary">{{ check.detail }}</span></div>{% endfor %}<p class="small text-secondary mt-2">{{ report.formatting.note }}</p></section>
+{% endif %}
+{% if report.rubric.criteria %}
+<section class="card shadow-sm border-0 p-4 mb-4"><h2 class="h4">Rubric checklist{% if report.rubric.score is not none %} · {{ report.rubric.score }}%{% endif %}</h2>{% for item in report.rubric.criteria %}<div class="check-row"><span class="{{ 'text-success' if item.passed else 'text-danger' if item.passed == false else 'text-warning' }}">{{ '✓' if item.passed else '!' if item.passed == false else '·' }}</span><strong>{{ item.label }}</strong><span class="ms-auto text-secondary">{{ item.detail }}</span></div>{% endfor %}</section>
+{% endif %}
+<section class="card shadow-sm border-0 p-4 mb-4"><h2 class="h4">Highlighted text</h2><p class="small text-secondary">Highlights identify possible review items. Check context before making changes.</p>{% if report.highlights %}{% for item in report.highlights %}<p class="highlight-item"><mark>{{ item.text }}</mark><span class="badge text-bg-secondary">{{ item.type }}</span><small class="d-block text-secondary">{{ item.detail }}</small></p>{% endfor %}{% else %}<p>No inline issues were flagged by the available checks.</p>{% endif %}</section>
+<p class="small text-secondary">{{ report.ethics }}</p>
+{% endblock %}

@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Submission history · AQA{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3"><div><div class="eyebrow">PRIVATE TO YOUR ACCOUNT</div><h1 class="h2">Submission history</h1></div><a class="btn btn-primary" href="{{ url_for('main.index') }}">Analyze assignment</a></div>
+<section class="card shadow-sm border-0 p-4 mb-4"><h2 class="h5">Progress over time</h2>{% if submissions %}<canvas id="progress-chart" aria-label="Quality score across your submissions"></canvas>{% else %}<p class="text-secondary">Your report scores will appear here after your first analysis.</p>{% endif %}</section>
+<section class="card shadow-sm border-0 p-0 overflow-hidden"><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>Date</th><th>Assignment</th><th>Words</th><th>Score</th><th></th></tr></thead><tbody>{% for submission in submissions|reverse %}<tr><td>{{ submission.created_at.strftime('%Y-%m-%d %H:%M') }}</td><td>{{ submission.file_name }}</td><td>{{ submission.word_count }}</td><td>{{ submission.quality_score }}/100</td><td><a href="{{ url_for('main.report', submission_id=submission.id) }}">View report</a></td></tr>{% else %}<tr><td colspan="5" class="text-center py-4 text-secondary">No submissions yet.</td></tr>{% endfor %}</tbody></table></div></section>
+{% endblock %}
+{% block scripts %}
+{% if submissions %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+new Chart(document.getElementById("progress-chart"), {
+  type: "line",
+  data: {
+    labels: [{% for row in submissions %}"{{ row.created_at.strftime('%Y-%m-%d') }}"{% if not loop.last %},{% endif %}{% endfor %}],
+    datasets: [{label: "Quality checklist score", data: [{% for row in submissions %}{{ row.quality_score }}{% if not loop.last %},{% endif %}{% endfor %}], borderColor: "#28634a", backgroundColor: "rgba(40,99,74,.12)", fill: true, tension: .25}]
+  },
+  options: {scales: {y: {min: 0, max: 100}}}
+});
+</script>
+{% endif %}
+{% endblock %}

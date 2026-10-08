@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Rubrics · AQA{% endblock %}
+{% block content %}
+<div class="eyebrow">LECTURER TOOLS</div><h1 class="h2 mb-4">Rubric library</h1>
+<div class="row g-4">
+  <div class="col-lg-5"><section class="card shadow-sm border-0 p-4"><h2 class="h5">Create a rubric</h2><p class="small text-secondary">One rule per line. Supported auto-checks: “must include a conclusion”, “min 1500 words”, and “min 5 references”. Other lines are included for manual lecturer review.</p><form method="post"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><label class="form-label" for="title">Rubric title</label><input class="form-control mb-3" id="title" name="title" maxlength="120" required><label class="form-label" for="criteria">Criteria</label><textarea class="form-control mb-3" id="criteria" name="criteria" rows="6" required placeholder="Must include a conclusion&#10;Min 1500 words&#10;Min 5 references"></textarea><button class="btn btn-primary" type="submit">Save rubric</button></form></section></div>
+  <div class="col-lg-7"><section class="card shadow-sm border-0 p-4"><h2 class="h5">Saved rubrics</h2>{% for rubric in rubrics %}<article class="border-bottom py-3"><strong>{{ rubric.title }}</strong><ul class="small mb-0">{% for item in rubric.criteria_json|fromjson %}<li>{{ item.label }}{% if item.type == 'manual_review' %} — manual review{% endif %}</li>{% endfor %}</ul></article>{% else %}<p class="text-secondary">No rubrics created yet.</p>{% endfor %}</section></div>
+</div>
+{% endblock %}
