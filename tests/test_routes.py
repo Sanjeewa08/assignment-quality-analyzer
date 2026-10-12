@@ -1,8 +1,44 @@
 from io import BytesIO
 from pathlib import Path
 
-from app import db
+from sqlalchemy import inspect
+
+from app import create_app, db
 from app.models import Rubric, Submission, User
+
+
+def test_health_route(client):
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.get_data(as_text=True) == "ok"
+
+
+def test_database_tables_are_created_when_app_starts(tmp_path, monkeypatch):
+    monkeypatch.setenv("AQA_SECRET_KEY", "deployment-test-secret")
+    app = create_app({
+        "TESTING": True,
+        "SQLALCHEMY_DATABASE_URI": "sqlite://",
+        "UPLOAD_FOLDER": str(tmp_path / "uploads"),
+    })
+    assert app.config["SECRET_KEY"] == "deployment-test-secret"
+    assert app.config["DEBUG"] is False
+    with app.app_context():
+        assert {"rubric", "submission", "user"} <= set(inspect(db.engine).get_table_names())
+
+
+def test_legacy_ppt_is_hidden_and_rejected_without_libreoffice(client, app):
+    app.config["LEGACY_PPT_AVAILABLE"] = False
+    page = client.get("/")
+    assert b".ppt," not in page.data
+    assert b"Legacy .ppt files are disabled" in page.data
+
+    response = client.post(
+        "/analyze",
+        data={"assignment": (BytesIO(b"presentation"), "legacy.ppt")},
+        content_type="multipart/form-data",
+        follow_redirects=True,
+    )
+    assert b"LibreOffice is not installed" in response.data
 
 
 def test_anonymous_user_is_required_to_sign_in(client):

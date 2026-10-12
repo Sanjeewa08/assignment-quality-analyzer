@@ -24,6 +24,7 @@ def create_app(test_config=None):
     default_db = Path(__file__).resolve().parent.parent / "data" / "assignment_quality.db"
     default_db.parent.mkdir(parents=True, exist_ok=True)
     app.config.update(
+        DEBUG=False,
         SECRET_KEY=os.environ.get("AQA_SECRET_KEY") or secrets.token_hex(32),
         SQLALCHEMY_DATABASE_URI=os.environ.get("DATABASE_URL", f"sqlite:///{default_db.as_posix()}"),
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
@@ -46,11 +47,16 @@ def create_app(test_config=None):
 
     from . import models
     from .extractors.factory import ExtractorFactory
+    from .extractors.slides import legacy_powerpoint_converter
     from .routes import main
 
     app.extensions["extractor_extensions"] = ExtractorFactory.supported_extensions
+    app.config["LEGACY_PPT_AVAILABLE"] = bool(legacy_powerpoint_converter())
     app.jinja_env.filters["fromjson"] = json.loads
     app.register_blueprint(main)
+
+    with app.app_context():
+        db.create_all()
 
     @app.cli.command("init-db")
     def init_db():

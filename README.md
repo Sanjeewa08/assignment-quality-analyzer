@@ -1,4 +1,15 @@
+---
+title: Assignment Quality Analyzer
+emoji: 📝
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+---
+
 # Assignment Quality Analyzer
+
+[![Tests](https://github.com/...# Assignment Quality Analyzer
 
 [![Tests](https://github.com/Sanjeewa08/AssignmentQualityAnalyzer/actions/workflows/tests.yml/badge.svg)](https://github.com/Sanjeewa08/AssignmentQualityAnalyzer/actions/workflows/tests.yml)
 
@@ -8,6 +19,7 @@ A Flask web app that helps students and lecturers review assignment clarity, str
 
 - TXT, DOCX, text/scanned PDF, PPT, PPTX, JPG/JPEG, and PNG extraction through extension-routed extractor classes.
 - Local OCR for images and scanned PDFs (Tesseract + Poppler); optional LibreOffice conversion for legacy PPT.
+- Legacy `.ppt` is offered only when LibreOffice is installed; `.pptx` remains available without it.
 - Word, character, sentence, and paragraph counts; minimum/maximum word requirements.
 - Flesch, Flesch-Kincaid, and Gunning Fog scores with plain-language interpretation.
 - Structure/headings, basic APA/MLA citation signals, and DOCX font/spacing/margin checks.
@@ -55,11 +67,14 @@ py -m venv .venv
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 Copy-Item .env.example .env
-python -m flask --app run.py init-db
 python run.py
 ```
 
 Open `http://127.0.0.1:5000`, register a student account, then upload an assignment. Set `AQA_SECRET_KEY` in `.env` before exposing the app beyond local development.
+
+### Hugging Face Spaces (Docker)
+
+Create a Docker Space and deploy this repository. The Docker image installs Tesseract and Poppler and serves the Flask app with Gunicorn on port 7860. Set `AQA_SECRET_KEY` as a Space secret; the database tables are created automatically on first startup. Legacy `.ppt` uploads are disabled in this image because LibreOffice is not installed; save those files as `.pptx`.
 
 ### OCR and optional services
 

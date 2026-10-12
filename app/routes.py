@@ -34,7 +34,16 @@ def _requested_int(key):
 @main.get("/")
 def index():
     rubrics = Rubric.query.order_by(Rubric.title.asc()).all() if current_user.is_authenticated else []
-    return render_template("index.html", rubrics=rubrics)
+    return render_template(
+        "index.html",
+        rubrics=rubrics,
+        legacy_ppt_available=current_app.config["LEGACY_PPT_AVAILABLE"],
+    )
+
+
+@main.get("/health")
+def health():
+    return "ok"
 
 
 @main.route("/register", methods=["GET", "POST"])
@@ -95,6 +104,13 @@ def analyze():
         flash("The filename is invalid. Rename the file and try again.", "error")
         return redirect(url_for("main.index"))
     extension = Path(safe_name).suffix.lower()
+    if extension == ".ppt" and not current_app.config["LEGACY_PPT_AVAILABLE"]:
+        flash(
+            "Legacy .ppt files are unavailable because LibreOffice is not installed. "
+            "Please save the presentation as .pptx or upload another supported format.",
+            "error",
+        )
+        return redirect(url_for("main.index"))
     if extension not in current_app.extensions["extractor_extensions"]:
         flash("This file type is not supported. Upload TXT, DOCX, PDF, PPT, PPTX, JPG, JPEG, or PNG.", "error")
         return redirect(url_for("main.index"))

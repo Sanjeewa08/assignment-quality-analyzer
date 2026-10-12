@@ -1,0 +1,10 @@
+.venv/
+.env
+uploads/
+__pycache__/
+tests/
+.git/
+.pytest_cache/
+.coverage
+data/
+instance/

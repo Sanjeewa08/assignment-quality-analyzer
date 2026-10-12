@@ -8,6 +8,10 @@ from pptx import Presentation
 from .base import DocumentExtractor, ExtractedDocument, ExtractionError
 
 
+def legacy_powerpoint_converter():
+    return shutil.which("soffice") or shutil.which("libreoffice")
+
+
 class PowerPointExtractor(DocumentExtractor):
     extensions = frozenset({".pptx"})
 
@@ -28,7 +32,7 @@ class LegacyPowerPointExtractor(DocumentExtractor):
     extensions = frozenset({".ppt"})
 
     def extract(self, path: Path) -> ExtractedDocument:
-        converter = shutil.which("soffice") or shutil.which("libreoffice")
+        converter = legacy_powerpoint_converter()
         if not converter:
             raise ExtractionError("Legacy .ppt files require LibreOffice to be installed for safe conversion.")
         try:
