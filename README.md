@@ -23,13 +23,6 @@ A Flask web app that helps students and lecturers review assignment clarity, str
 - Student/lecturer roles, password hashing, CSRF protection, upload size limits, private reports, and temporary-upload cleanup.
 - Bootstrap responsive layout and a persisted light/dark theme toggle.
 
-## Screenshots
-
-Add screenshots after running the application:
-
-| Upload | Analysis report | History and progress |
-|---|---|---|
-| `docs/screenshots/upload.png` | `docs/screenshots/report.png` | `docs/screenshots/history.png` |
 
 ## Architecture
 
@@ -64,10 +57,6 @@ python run.py
 ```
 
 Open `http://127.0.0.1:5000`, register a student account, then upload an assignment. Set `AQA_SECRET_KEY` in `.env` before exposing the app beyond local development.
-
-### Hugging Face Spaces (Docker)
-
-Create a Docker Space and deploy this repository. The Docker image installs Tesseract and Poppler and serves the Flask app with Gunicorn on port 7860. Set `AQA_SECRET_KEY` as a Space secret; the database tables are created automatically on first startup. Legacy `.ppt` uploads are disabled in this image because LibreOffice is not installed; save those files as `.pptx`.
 
 ### OCR and optional services
 
