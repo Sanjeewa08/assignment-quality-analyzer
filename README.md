@@ -1,13 +1,6 @@
----
-title: Assignment Quality Analyzer
-emoji: 📝
-colorFrom: blue
-colorTo: green
-sdk: docker
-app_port: 7860
----
-
 # Assignment Quality Analyzer
+
+[![Tests](https://github.com/Sanjeewa08/assignment-quality-analyzer/actions/workflows/tests.yml/badge.svg)](https://github.com/Sanjeewa08/assignment-quality-analyzer/actions/workflows/tests.yml)
 
 [![Tests](https://github.com/...# Assignment Quality Analyzer
 
