@@ -8,6 +8,8 @@
 
 A Flask web app that helps students and lecturers review assignment clarity, structure, citations, formatting, and requirements. Its output is an explainable revision checklist—not a grade, authorship claim, or misconduct finding. It never rewrites student work.
 
+For split hosting with the Flask API on Azure and static frontend on Vercel, follow [DEPLOYMENT.md](DEPLOYMENT.md). The Vercel project root is `frontend/`.
+
 ## Features
 
 - TXT, DOCX, text/scanned PDF, PPT, PPTX, JPG/JPEG, and PNG extraction through extension-routed extractor classes.

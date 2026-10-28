@@ -23,10 +23,15 @@ def create_app(test_config=None):
     Path(app.instance_path).mkdir(parents=True, exist_ok=True)
     default_db = Path(__file__).resolve().parent.parent / "data" / "assignment_quality.db"
     default_db.parent.mkdir(parents=True, exist_ok=True)
+    database_url = os.environ.get("DATABASE_URL", f"sqlite:///{default_db.as_posix()}")
+    if database_url.startswith("postgres://"):
+        database_url = database_url.replace("postgres://", "postgresql+psycopg://", 1)
+    elif database_url.startswith("postgresql://"):
+        database_url = database_url.replace("postgresql://", "postgresql+psycopg://", 1)
     app.config.update(
         DEBUG=False,
         SECRET_KEY=os.environ.get("AQA_SECRET_KEY") or secrets.token_hex(32),
-        SQLALCHEMY_DATABASE_URI=os.environ.get("DATABASE_URL", f"sqlite:///{default_db.as_posix()}"),
+        SQLALCHEMY_DATABASE_URI=database_url,
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         MAX_CONTENT_LENGTH=10 * 1024 * 1024,
         UPLOAD_FOLDER=os.environ.get(
@@ -35,7 +40,10 @@ def create_app(test_config=None):
         ),
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
+        SESSION_COOKIE_SECURE=os.environ.get("AQA_COOKIE_SECURE", "").lower() == "true",
         REMEMBER_COOKIE_HTTPONLY=True,
+        REMEMBER_COOKIE_SECURE=os.environ.get("AQA_COOKIE_SECURE", "").lower() == "true",
+        WTF_CSRF_SSL_STRICT=os.environ.get("AQA_CSRF_SSL_STRICT", "true").lower() == "true",
     )
     if test_config:
         app.config.update(test_config)
@@ -48,12 +56,14 @@ def create_app(test_config=None):
     from . import models
     from .extractors.factory import ExtractorFactory
     from .extractors.slides import legacy_powerpoint_converter
+    from .api import api
     from .routes import main
 
     app.extensions["extractor_extensions"] = ExtractorFactory.supported_extensions
     app.config["LEGACY_PPT_AVAILABLE"] = bool(legacy_powerpoint_converter())
     app.jinja_env.filters["fromjson"] = json.loads
     app.register_blueprint(main)
+    app.register_blueprint(api)
 
     with app.app_context():
         db.create_all()
@@ -87,6 +97,8 @@ def create_app(test_config=None):
     def request_too_large(_error):
         from flask import flash, redirect, request, url_for
 
+        if request.path.startswith("/api/"):
+            return {"error": "That upload exceeds the 10 MB limit. Please choose a smaller file."}, 413
         flash("That upload exceeds the 10 MB limit. Please choose a smaller file.", "error")
         return redirect(url_for("main.index"))
 

@@ -13,6 +13,121 @@ def test_health_route(client):
     assert response.get_data(as_text=True) == "ok"
 
 
+def test_api_csrf_and_current_user(client):
+    csrf = client.get("/api/csrf")
+    assert csrf.status_code == 200
+    assert csrf.json["csrf_token"]
+    response = client.get("/api/me")
+    assert response.status_code == 200
+    assert response.json["user"]["email"] == "student@example.test"
+
+
+def test_api_accepts_csrf_header_and_rejects_missing_token(tmp_path):
+    app = create_app({
+        "TESTING": True,
+        "SECRET_KEY": "csrf-test-secret",
+        "SQLALCHEMY_DATABASE_URI": "sqlite://",
+        "UPLOAD_FOLDER": str(tmp_path / "uploads"),
+    })
+    with app.app_context():
+        db.session.add(User(
+            email="csrf@example.test",
+            password_hash=User.hash_password("secure-test-password"),
+            role="student",
+        ))
+        db.session.commit()
+    client = app.test_client()
+    csrf_token = client.get("/api/csrf").json["csrf_token"]
+    rejected = client.post(
+        "/api/auth/login",
+        json={"email": "csrf@example.test", "password": "secure-test-password"},
+    )
+    assert rejected.status_code == 400
+    accepted = client.post(
+        "/api/auth/login",
+        json={"email": "csrf@example.test", "password": "secure-test-password"},
+        headers={"X-CSRFToken": csrf_token},
+    )
+    assert accepted.status_code == 200
+    with app.app_context():
+        db.drop_all()
+
+
+def test_api_login_and_register(client, app):
+    with client.session_transaction() as session:
+        session.clear()
+    response = client.post(
+        "/api/auth/login",
+        json={"email": "student@example.test", "password": "secure-test-password"},
+    )
+    assert response.status_code == 200
+    assert response.json["user"]["role"] == "student"
+    with client.session_transaction() as session:
+        session.clear()
+
+    response = client.post(
+        "/api/auth/register",
+        json={"email": "api-new@example.test", "password": "long-secure-password"},
+    )
+    assert response.status_code == 201
+    assert response.json["user"]["email"] == "api-new@example.test"
+    with app.app_context():
+        assert User.query.filter_by(email="api-new@example.test").one().role == "student"
+
+
+def test_api_analysis_history_report_and_pdf(client):
+    response = client.post(
+        "/api/analyze",
+        data={
+            "assignment": (
+                BytesIO(b"Introduction\nA useful assignment presents evidence. (Smith, 2024)\n\nAnalysis\nThe discussion is clear.\n\nConclusion\nThe conclusion summarizes the evidence."),
+                "api-essay.txt",
+            )
+        },
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 201
+    submission = response.json["submission"]
+    assert submission["file_name"] == "api-essay.txt"
+    assert submission["report"]["overall_score"] >= 0
+
+    history = client.get("/api/history")
+    assert history.status_code == 200
+    assert history.json["submissions"][0]["id"] == submission["id"]
+    report = client.get(f"/api/reports/{submission['id']}")
+    assert report.status_code == 200
+    pdf = client.get(f"/api/reports/{submission['id']}/pdf")
+    assert pdf.status_code == 200
+    assert pdf.mimetype == "application/pdf"
+    assert pdf.data.startswith(b"%PDF")
+
+
+def test_api_rejects_anonymous_and_private_report_access(client, app):
+    with client.session_transaction() as session:
+        session.clear()
+    assert client.get("/api/history").status_code == 401
+    assert client.post("/api/auth/login", json={
+        "email": "student@example.test",
+        "password": "secure-test-password",
+    }).status_code == 200
+    with app.app_context():
+        other = User(email="api-other@example.test", password_hash=User.hash_password("secure-test-password"), role="student")
+        db.session.add(other)
+        db.session.flush()
+        record = Submission(
+            user_id=other.id,
+            file_name="private.txt",
+            extracted_text="private text",
+            report_json="{}",
+            word_count=2,
+            quality_score=50,
+        )
+        db.session.add(record)
+        db.session.commit()
+        submission_id = record.id
+    assert client.get(f"/api/reports/{submission_id}").status_code == 404
+
+
 def test_database_tables_are_created_when_app_starts(tmp_path, monkeypatch):
     monkeypatch.setenv("AQA_SECRET_KEY", "deployment-test-secret")
     app = create_app({
